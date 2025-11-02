@@ -5,16 +5,30 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	initalDB()
+	if dbExists() == false {
+		createDb()
+	}
+	insertIntoDb()
+	allRecipes()
 	serveHTTP()
 }
 
-func initalDB() {
+func dbExists() bool {
+	_, err := os.Stat("recipe.db")
+	if err != nil {
+		fmt.Printf("Database does not exist\nCreating database\n")
+		return false
+	}
+	return true
+}
+
+func createDb() {
 	fmt.Println("Connecting to database")
 
 	db, _ := sql.Open("sqlite3", "recipe.db")
@@ -29,25 +43,32 @@ func initalDB() {
 		favorite BOOL)
 		`)
 
-	db.Exec(`INSERT INTO recipes (name, recipe) VALUES ('Pancakes', '3 eggs, 3 dl flour, 5 dl milk, butter')`)
+	fmt.Println("Database created")
+}
 
-	fmt.Println("Database operations complete")
+// This is bad practise, should only open once
+func insertIntoDb() {
+	db, _ := sql.Open("sqlite3", "recipe.db")
+	defer db.Close()
+	db.Exec(`INSERT INTO recipes (name, recipe) VALUES ('Pancakes', '3 eggs, 3 dl flour, 5 dl milk, butter')`)
+	fmt.Println("Table insertion complete")
 }
 
 func serveHTTP() {
 	mux := http.NewServeMux()
 
 	log.Print("Listening on http://localhost:3000")
-	mux.HandleFunc("GET /recipe/all}", allRecipes)
+	//mux.HandleFunc("GET /recipe/all}", allRecipes)
 
 	http.ListenAndServe(":3000", mux)
 }
 
-func allRecipes(w http.ResponseWriter, r *http.Request) {
+func allRecipes() {
 	db, _ := sql.Open("sqlite3", "recipe.db")
-	recipes, err := db.Exec(`SELECT * FROM recipes`)
+	result, err := db.Query(`SELECT * FROM recipes`)
 	if err != nil {
-		error.Error(err)
+		fmt.Println(result)
+	} else {
+		fmt.Println(err)
 	}
-	fmt.Sprintf("%v", recipes)
 }

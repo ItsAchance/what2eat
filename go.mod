@@ -1,4 +1,4 @@
-module go-recipe
+module github.com/ItsAchance/what2eat
 
 go 1.25.1
 
